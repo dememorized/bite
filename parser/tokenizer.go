@@ -9,15 +9,17 @@ import (
 type Token string
 
 const (
-	Unknown    Token = ""
-	Integer          = "Integer"
-	String           = "String"
-	Identifier       = "Identifier"
-	Comma            = "Comma"
-	Colon            = "Colon"
-	Slash            = "Slash"
-	Dot              = "Dot"
-	Whitespace       = "Whitespace"
+	Unknown      Token = ""
+	Integer            = "Integer"
+	String             = "String"
+	Identifier         = "Identifier"
+	Comma              = "Comma"
+	Colon              = "Colon"
+	Slash              = "Slash"
+	Dot                = "Dot"
+	Whitespace         = "Whitespace"
+	BracketLeft        = "BracketLeft"
+	BracketRight       = "BracketRight"
 )
 
 func (t Token) String() string {
@@ -111,6 +113,12 @@ func swallow(bytes []byte, lookahead byte) (done bool, tok Token, err error) {
 		return true, Colon, nil
 	case '.':
 		return true, Dot, nil
+	case '/':
+		return true, Slash, nil
+	case '[':
+		return true, BracketLeft, nil
+	case ']':
+		return true, BracketRight, nil
 	case ' ':
 		tok = Whitespace
 
@@ -141,13 +149,6 @@ func swallow(bytes []byte, lookahead byte) (done bool, tok Token, err error) {
 			}
 		}
 
-		if _, exists := whitespaceMap[lookahead]; exists {
-			return true, Integer, nil
-		}
-		if lookahead == ',' || lookahead == '/' {
-			return true, Integer, nil
-		}
-
 		if len(bytes) > 1 && inBase([...]byte{bytes[0], bytes[1]}, lookahead) {
 			return false, Integer, nil
 		}
@@ -156,7 +157,14 @@ func swallow(bytes []byte, lookahead byte) (done bool, tok Token, err error) {
 			return false, Integer, nil
 		}
 
-		return true, Integer, fmt.Errorf("unknown next character immediately after integer: %c [%x]", lookahead, lookahead)
+		return true, Integer, nil
+	}
+
+	if bytes[0] >= 'a' && bytes[0] <= 'z' || bytes[0] >= 'A' && bytes[0] <= 'Z' || bytes[0] == '_' {
+		if lookahead >= '0' && lookahead <= '9' || lookahead >= 'a' && lookahead <= 'z' || lookahead >= 'A' && lookahead <= 'Z' || lookahead == '_' {
+			return false, Identifier, nil
+		}
+		return true, Identifier, nil
 	}
 
 	return true, Unknown, fmt.Errorf("unknown character: %c [%x]", lookahead, lookahead)
